@@ -12,7 +12,7 @@
 /* ============================================================
  * Constants & Limits
  * ============================================================ */
-#define MAX_BOOKS        100
+#define MAX_BOOKS        500
 #define MAX_CUSTOMERS    100
 #define MAX_RECORDS      200
 #define MAX_STAFF        10
@@ -60,12 +60,12 @@
 #define STAFF_SEARCH_CUSTOMER    8
 #define STAFF_VIEW_REQUESTS      9
 #define STAFF_APPROVE_REQUEST    10
-#define STAFF_RETURN_BOOK        11
-#define STAFF_VIEW_OVERDUE       12
-#define STAFF_STATISTICS         13
-#define STAFF_CHANGE_PASSWORD    14
-#define STAFF_SAVE_ALL           15
-#define STAFF_REJECT_REQUEST     16
+#define STAFF_REJECT_REQUEST     11
+#define STAFF_RETURN_BOOK        12
+#define STAFF_VIEW_OVERDUE       13
+#define STAFF_STATISTICS         14
+#define STAFF_CHANGE_PASSWORD    15
+#define STAFF_SAVE_ALL           16
 #define STAFF_LOGOUT             0
 
 /* Customer menu options */

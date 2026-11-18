@@ -56,13 +56,46 @@ void showWelcomeScreen(void) {
  * ============================================================ */
 
 void showMainMenu(void) {
+    const int width = 70;
+    int innerWidth = width - 4;
+    
+    printf("\n");
+    printf("  +");
+    for (int i = 0; i < width - 2; i++) printf("-");
+    printf("+\n");
+    
+    const char *title = "M A I N   M E N U";
+    int titleLen = (int)strlen(title);
+    int padding = (innerWidth - titleLen) / 2;
+    printf("  |");
+    for (int i = 0; i < padding; i++) printf(" ");
+    printf("%s", title);
+    for (int i = 0; i < innerWidth - padding - titleLen; i++) printf(" ");
+    printf(" |\n");
+    
+    printf("  +");
+    for (int i = 0; i < width - 2; i++) printf("-");
+    printf("+\n");
+    
     const char *options[] = {
         "Customer Login",
         "Staff Login",
         "Exit"
     };
     
-    printMenu("M A I N   M E N U", options, 3, 0);
+    for (int i = 0; i < 3; i++) {
+        char line[100];
+        int num = (i == 2) ? 0 : i + 1;  // 1, 2, 0
+        snprintf(line, sizeof(line), "  %d. %s", num, options[i]);
+        int len = (int)strlen(line);
+        printf("  | %s", line);
+        for (int j = 0; j < innerWidth - len; j++) printf(" ");
+        printf(" |\n");
+    }
+    
+    printf("  +");
+    for (int i = 0; i < width - 2; i++) printf("-");
+    printf("+\n");
 }
 
 /* ============================================================
@@ -140,9 +173,41 @@ void customerMenu(int customerIndex) {
         char welcomeTitle[80];
         snprintf(welcomeTitle, sizeof(welcomeTitle), "Welcome, %s", customers[customerIndex].name);
         
-        printMenu(welcomeTitle, options, 7, 1);
+        const int width = 70;
+        int innerWidth = width - 4;
         
-        int result = readInt("Enter your choice: ", 0, 7);
+        printf("\n");
+        printf("  +");
+        for (int i = 0; i < width - 2; i++) printf("-");
+        printf("+\n");
+        
+        int titleLen = (int)strlen(welcomeTitle);
+        int padding = (innerWidth - titleLen) / 2;
+        printf("  |");
+        for (int i = 0; i < padding; i++) printf(" ");
+        printf("%s", welcomeTitle);
+        for (int i = 0; i < innerWidth - padding - titleLen; i++) printf(" ");
+        printf(" |\n");
+        
+        printf("  +");
+        for (int i = 0; i < width - 2; i++) printf("-");
+        printf("+\n");
+        
+        for (int i = 0; i < 7; i++) {
+            char line[100];
+            int num = (i == 6) ? 0 : i + 1;  // 1-6, 0 for Logout
+            snprintf(line, sizeof(line), "  %d. %s", num, options[i]);
+            int len = (int)strlen(line);
+            printf("  | %s", line);
+            for (int j = 0; j < innerWidth - len; j++) printf(" ");
+            printf(" |\n");
+        }
+        
+        printf("  +");
+        for (int i = 0; i < width - 2; i++) printf("-");
+        printf("+\n");
+        
+        int result = readInt("Enter your choice: ", 0, 6);
         
         /* Handle EOF */
         if (result == INT_MIN) {
@@ -214,7 +279,40 @@ void staffMenu(void) {
     do {
         clearScreen();
         
-        printMenu("S T A F F   M E N U", options, 17, 1);
+        const int width = 70;
+        int innerWidth = width - 4;
+        
+        printf("\n");
+        printf("  +");
+        for (int i = 0; i < width - 2; i++) printf("-");
+        printf("+\n");
+        
+        const char *title = "S T A F F   M E N U";
+        int titleLen = (int)strlen(title);
+        int padding = (innerWidth - titleLen) / 2;
+        printf("  |");
+        for (int i = 0; i < padding; i++) printf(" ");
+        printf("%s", title);
+        for (int i = 0; i < innerWidth - padding - titleLen; i++) printf(" ");
+        printf(" |\n");
+        
+        printf("  +");
+        for (int i = 0; i < width - 2; i++) printf("-");
+        printf("+\n");
+        
+        for (int i = 0; i < 17; i++) {
+            char line[100];
+            int num = (i == 16) ? 0 : i + 1;  // 1-16, 0 for Logout
+            snprintf(line, sizeof(line), "  %d. %s", num, options[i]);
+            int len = (int)strlen(line);
+            printf("  | %s", line);
+            for (int j = 0; j < innerWidth - len; j++) printf(" ");
+            printf(" |\n");
+        }
+        
+        printf("  +");
+        for (int i = 0; i < width - 2; i++) printf("-");
+        printf("+\n");
         
         int result = readInt("Enter your choice: ", 0, 16);
         
