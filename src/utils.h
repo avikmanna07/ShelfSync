@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdbool.h>
+#include <limits.h>
 
 /* ============================================================
  * Constants & Limits
@@ -32,6 +33,10 @@
 #define STATUS_RETURNED  0
 #define STATUS_ISSUED    1
 #define STATUS_OVERDUE   2
+
+/* Helper macros for issue status */
+#define IS_ISSUED(s)     ((s) == STATUS_ISSUED || (s) == STATUS_OVERDUE)
+#define IS_ACTIVE_ISSUE(s) IS_ISSUED(s)
 
 /* Request status */
 #define REQUEST_PENDING  0
@@ -60,7 +65,8 @@
 #define STAFF_STATISTICS         13
 #define STAFF_CHANGE_PASSWORD    14
 #define STAFF_SAVE_ALL           15
-#define STAFF_LOGOUT             16
+#define STAFF_REJECT_REQUEST     16
+#define STAFF_LOGOUT             0
 
 /* Customer menu options */
 #define CUST_VIEW_ISSUED      1
@@ -69,7 +75,7 @@
 #define CUST_SEARCH_BOOKS     4
 #define CUST_REQUEST_BOOK     5
 #define CUST_VIEW_REQUESTS    6
-#define CUST_LOGOUT           7
+#define CUST_LOGOUT           0
 
 /* ============================================================
  * Data Structures
@@ -169,6 +175,8 @@ void printDate(struct Date date);
 int isValidDate(int day, int month, int year);
 int daysInMonth(int month, int year);
 int isLeapYear(int year);
+int daysBetween(struct Date d1, struct Date d2);
+int getOverdueDays(struct Date dueDate);
 
 /* Display utilities */
 void printHeader(const char *title);

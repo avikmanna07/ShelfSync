@@ -86,7 +86,7 @@ void returnBook(void) {
         return;
     }
     
-    /* Show customer's issued books */
+    /* Show customer's issued books (including overdue) */
     printf("\nBooks currently issued to %s:\n", customers[custIndex].name);
     printSeparator();
     
@@ -94,16 +94,22 @@ void returnBook(void) {
     int issuedCount = 0;
     
     for (int i = 0; i < issueCount; i++) {
-        if (issues[i].customerId == custIndex && issues[i].status == STATUS_ISSUED) {
-            struct Book *book = &books[findBookById(issues[i].bookId)];
-            if (book && book->isActive) {
-                issuedIndices[issuedCount] = i;
-                printf("%d. Book ID: %d | %s\n", issuedCount + 1, book->bookId, book->title);
-                printf("   Issue ID: %d | Due: ", issues[i].issueId);
-                printDate(issues[i].dueDate);
-                if (isOverdue(issues[i].dueDate)) printf(" [OVERDUE]");
-                printf("\n");
-                issuedCount++;
+        if (issues[i].customerId == custIndex && IS_ISSUED(issues[i].status)) {
+            int bookIdx = findBookById(issues[i].bookId);
+            if (bookIdx >= 0) {
+                struct Book *book = &books[bookIdx];
+                if (book->isActive) {
+                    issuedIndices[issuedCount] = i;
+                    printf("%d. Book ID: %d | %s\n", issuedCount + 1, book->bookId, book->title);
+                    printf("   Issue ID: %d | Due: ", issues[i].issueId);
+                    printDate(issues[i].dueDate);
+                    if (issues[i].status == STATUS_OVERDUE) {
+                        int overdueDays = getOverdueDays(issues[i].dueDate);
+                        printf(" [OVERDUE by %d day%s]", overdueDays, overdueDays == 1 ? "" : "s");
+                    }
+                    printf("\n");
+                    issuedCount++;
+                }
             }
         }
     }
@@ -124,7 +130,9 @@ void returnBook(void) {
     
     int issueIndex = issuedIndices[choice - 1];
     struct IssueRecord *issue = &issues[issueIndex];
-    struct Book *book = &books[findBookById(issue->bookId)];
+    
+    int bookIdx = findBookById(issue->bookId);
+    struct Book *book = (bookIdx >= 0) ? &books[bookIdx] : NULL;
     
     printf("\nConfirm return of: %s\n", book ? book->title : "Unknown Book");
     int confirm = readInt("Confirm? (1=Yes, 0=No): ", 0, 1);
@@ -133,6 +141,17 @@ void returnBook(void) {
         issue->status = STATUS_RETURNED;
         issue->returnDate = getCurrentDate();
         if (book) book->availableCopies++;
+        
+        /* Update request status to COMPLETED if this was an approved request */
+        for (int i = 0; i < requestCount; i++) {
+            if (requests[i].bookId == issue->bookId && 
+                requests[i].customerId == issue->customerId && 
+                requests[i].status == REQUEST_APPROVED) {
+                requests[i].status = REQUEST_COMPLETED;
+                break;
+            }
+        }
+        saveRequests();
         
         saveIssues();
         saveBooks();
@@ -158,29 +177,31 @@ void viewIssuedBooks(int customerId) {
     updateOverdueStatus();
     
     for (int i = 0; i < issueCount; i++) {
-        if (issues[i].customerId == customerId && 
-            (issues[i].status == STATUS_ISSUED || issues[i].status == STATUS_OVERDUE)) {
-            
-            struct Book *book = &books[findBookById(issues[i].bookId)];
-            if (book && book->isActive) {
-                if (!found) {
-                    printf("%-6s %-30s %-12s %-12s %s\n", "ID", "Title", "Issue Date", "Due Date", "Status");
-                    printSeparator();
-                    found = 1;
+        if (issues[i].customerId == customerId && IS_ISSUED(issues[i].status)) {
+            int bookIdx = findBookById(issues[i].bookId);
+            if (bookIdx >= 0) {
+                struct Book *book = &books[bookIdx];
+                if (book->isActive) {
+                    if (!found) {
+                        printf("%-6s %-30s %-12s %-12s %s\n", "ID", "Title", "Issue Date", "Due Date", "Status");
+                        printSeparator();
+                        found = 1;
+                    }
+                    
+                    printf("%-6d %-30s ", book->bookId, book->title);
+                    printDate(issues[i].issueDate);
+                    printf("  ");
+                    printDate(issues[i].dueDate);
+                    printf("  ");
+                    
+                    if (issues[i].status == STATUS_OVERDUE) {
+                        int overdueDays = getOverdueDays(issues[i].dueDate);
+                        printf("OVERDUE (%d day%s)", overdueDays, overdueDays == 1 ? "" : "s");
+                    } else {
+                        printf("Issued");
+                    }
+                    printf("\n");
                 }
-                
-                printf("%-6d %-30s ", book->bookId, book->title);
-                printDate(issues[i].issueDate);
-                printf("  ");
-                printDate(issues[i].dueDate);
-                printf("  ");
-                
-                if (issues[i].status == STATUS_OVERDUE) {
-                    printf("OVERDUE");
-                } else {
-                    printf("Issued");
-                }
-                printf("\n");
             }
         }
     }
@@ -204,19 +225,22 @@ void viewReturnedBooks(int customerId) {
     
     for (int i = 0; i < issueCount; i++) {
         if (issues[i].customerId == customerId && issues[i].status == STATUS_RETURNED) {
-            struct Book *book = &books[findBookById(issues[i].bookId)];
-            if (book && book->isActive) {
-                if (!found) {
-                    printf("%-6s %-30s %-12s %s\n", "ID", "Title", "Issue Date", "Return Date");
-                    printSeparator();
-                    found = 1;
+            int bookIdx = findBookById(issues[i].bookId);
+            if (bookIdx >= 0) {
+                struct Book *book = &books[bookIdx];
+                if (book->isActive) {
+                    if (!found) {
+                        printf("%-6s %-30s %-12s %s\n", "ID", "Title", "Issue Date", "Return Date");
+                        printSeparator();
+                        found = 1;
+                    }
+                    
+                    printf("%-6d %-30s ", book->bookId, book->title);
+                    printDate(issues[i].issueDate);
+                    printf("  ");
+                    printDate(issues[i].returnDate);
+                    printf("\n");
                 }
-                
-                printf("%-6d %-30s ", book->bookId, book->title);
-                printDate(issues[i].issueDate);
-                printf("  ");
-                printDate(issues[i].returnDate);
-                printf("\n");
             }
         }
     }
@@ -242,20 +266,27 @@ void viewOverdueBooks(void) {
     
     for (int i = 0; i < issueCount; i++) {
         if (issues[i].status == STATUS_OVERDUE) {
-            struct Book *book = &books[findBookById(issues[i].bookId)];
-            struct Customer *cust = &customers[issues[i].customerId];
+            int bookIdx = findBookById(issues[i].bookId);
+            if (bookIdx < 0) continue;
+            struct Book *book = &books[bookIdx];
+            if (!book->isActive) continue;
             
-            if (book && book->isActive && cust && cust->isActive) {
-                if (!found) {
-                    printf("%-6s %-30s %-20s %-12s %s\n", "Book ID", "Title", "Customer", "Due Date", "Code");
-                    printSeparator();
-                    found = 1;
-                }
-                
-                printf("%-6d %-30s %-20s ", book->bookId, book->title, cust->name);
-                printDate(issues[i].dueDate);
-                printf("  %s\n", cust->uniqueCode);
+            int custIdx = issues[i].customerId;
+            if (custIdx < 0 || custIdx >= customerCount) continue;
+            struct Customer *cust = &customers[custIdx];
+            if (!cust->isActive) continue;
+            
+            int overdueDays = getOverdueDays(issues[i].dueDate);
+            
+            if (!found) {
+                printf("%-6s %-30s %-20s %-12s %-6s %s\n", "Book ID", "Title", "Customer", "Due Date", "Days", "Code");
+                printSeparator();
+                found = 1;
             }
+            
+            printf("%-6d %-30s %-20s ", book->bookId, book->title, cust->name);
+            printDate(issues[i].dueDate);
+            printf("  %-6d %s\n", overdueDays, cust->uniqueCode);
         }
     }
     
@@ -287,7 +318,7 @@ int getActiveIssue(int bookId, int customerId) {
     for (int i = 0; i < issueCount; i++) {
         if (issues[i].bookId == bookId && 
             issues[i].customerId == customerId && 
-            issues[i].status == STATUS_ISSUED) {
+            IS_ISSUED(issues[i].status)) {
             return i;
         }
     }

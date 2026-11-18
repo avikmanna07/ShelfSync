@@ -14,6 +14,7 @@ void showMainMenu(void);
 void handleMainMenuChoice(int choice);
 void customerMenu(int customerIndex);
 void staffMenu(void);
+void runMainLoop(void);
 
 /* ============================================================
  * Main Entry Point
@@ -26,14 +27,7 @@ int main(void) {
     /* Initialize default staff if needed */
     initDefaultStaff();
     
-    int choice;
-    
-    do {
-        showWelcomeScreen();
-        showMainMenu();
-        choice = readInt("Enter your choice: ", 0, 2);
-        handleMainMenuChoice(choice);
-    } while (choice != MAIN_MENU_EXIT);
+    runMainLoop();
     
     /* Save all data on exit */
     saveAllData();
@@ -68,7 +62,7 @@ void showMainMenu(void) {
         "Exit"
     };
     
-    printMenu("M A I N   M E N U", options, 3, 1);
+    printMenu("M A I N   M E N U", options, 3, 0);
 }
 
 /* ============================================================
@@ -100,6 +94,30 @@ void handleMainMenuChoice(int choice) {
 }
 
 /* ============================================================
+ * Main Menu Loop with EOF handling
+ * ============================================================ */
+
+void runMainLoop(void) {
+    int choice;
+    
+    do {
+        showWelcomeScreen();
+        showMainMenu();
+        
+        int result = readInt("Enter your choice: ", 0, 2);
+        
+        /* Handle EOF */
+        if (result == INT_MIN) {
+            printf("\nExiting ShelfSync...\n");
+            break;
+        }
+        choice = result;
+        
+        handleMainMenuChoice(choice);
+    } while (choice != MAIN_MENU_EXIT);
+}
+
+/* ============================================================
  * Customer Menu
  * ============================================================ */
 
@@ -124,7 +142,14 @@ void customerMenu(int customerIndex) {
         
         printMenu(welcomeTitle, options, 7, 1);
         
-        choice = readInt("Enter your choice: ", 0, 7);
+        int result = readInt("Enter your choice: ", 0, 7);
+        
+        /* Handle EOF */
+        if (result == INT_MIN) {
+            printf("\nExiting...\n");
+            break;
+        }
+        choice = result;
         
         switch (choice) {
             case CUST_VIEW_ISSUED:
@@ -156,6 +181,9 @@ void customerMenu(int customerIndex) {
     } while (choice != CUST_LOGOUT);
 }
 
+/* Forward declaration for statistics function */
+void showLibraryStatistics(void);
+
 /* ============================================================
  * Staff Menu
  * ============================================================ */
@@ -174,6 +202,7 @@ void staffMenu(void) {
         "Customer Search",
         "View Book Requests",
         "Approve / Issue Requested Book",
+        "Reject Book Request",
         "Mark Book as Returned",
         "View Overdue Books",
         "Library Statistics",
@@ -185,9 +214,16 @@ void staffMenu(void) {
     do {
         clearScreen();
         
-        printMenu("S T A F F   M E N U", options, 16, 1);
+        printMenu("S T A F F   M E N U", options, 17, 1);
         
-        choice = readInt("Enter your choice: ", 0, 16);
+        int result = readInt("Enter your choice: ", 0, 16);
+        
+        /* Handle EOF */
+        if (result == INT_MIN) {
+            printf("\nExiting...\n");
+            break;
+        }
+        choice = result;
         
         switch (choice) {
             case STAFF_ADD_BOOK:
@@ -220,56 +256,18 @@ void staffMenu(void) {
             case STAFF_APPROVE_REQUEST:
                 approveRequest();
                 break;
+            case STAFF_REJECT_REQUEST:
+                rejectRequest();
+                break;
             case STAFF_RETURN_BOOK:
                 returnBook();
                 break;
             case STAFF_VIEW_OVERDUE:
                 viewOverdueBooks();
                 break;
-            case STAFF_STATISTICS: {
-                printHeader("L I B R A R Y   S T A T I S T I C S");
-                
-                int totalBooks = 0, totalCopies = 0, availableCopies = 0, issuedBooks = 0;
-                for (int i = 0; i < bookCount; i++) {
-                    if (books[i].isActive) {
-                        totalBooks++;
-                        totalCopies += books[i].totalCopies;
-                        availableCopies += books[i].availableCopies;
-                    }
-                }
-                
-                for (int i = 0; i < issueCount; i++) {
-                    if (issues[i].status == STATUS_ISSUED || issues[i].status == STATUS_OVERDUE) {
-                        issuedBooks++;
-                    }
-                }
-                
-                int pendingRequests = 0;
-                for (int i = 0; i < requestCount; i++) {
-                    if (requests[i].status == REQUEST_PENDING) pendingRequests++;
-                }
-                
-                int activeCustomers = 0;
-                for (int i = 0; i < customerCount; i++) {
-                    if (customers[i].isActive) activeCustomers++;
-                }
-                
-                int overdueBooks = 0;
-                for (int i = 0; i < issueCount; i++) {
-                    if (issues[i].status == STATUS_OVERDUE) overdueBooks++;
-                }
-                
-                printf("Total Books (titles):     %d\n", totalBooks);
-                printf("Total Copies:             %d\n", totalCopies);
-                printf("Available Copies:         %d\n", availableCopies);
-                printf("Currently Issued:         %d\n", issuedBooks);
-                printf("Pending Requests:         %d\n", pendingRequests);
-                printf("Registered Customers:     %d\n", activeCustomers);
-                printf("Overdue Books:            %d\n", overdueBooks);
-                printSeparator();
-                pauseScreen();
+            case STAFF_STATISTICS:
+                showLibraryStatistics();
                 break;
-            }
             case STAFF_CHANGE_PASSWORD:
                 changeStaffPassword();
                 break;
@@ -286,4 +284,64 @@ void staffMenu(void) {
                 pauseScreen();
         }
     } while (choice != STAFF_LOGOUT);
+}
+
+/* ============================================================
+ * Library Statistics (separate function)
+ * ============================================================ */
+
+void showLibraryStatistics(void) {
+    printHeader("L I B R A R Y   S T A T I S T I C S");
+    
+    int totalBooks = 0, totalCopies = 0, availableCopies = 0, issuedBooks = 0;
+    for (int i = 0; i < bookCount; i++) {
+        if (books[i].isActive) {
+            totalBooks++;
+            totalCopies += books[i].totalCopies;
+            availableCopies += books[i].availableCopies;
+        }
+    }
+    
+    for (int i = 0; i < issueCount; i++) {
+        if (IS_ISSUED(issues[i].status)) {
+            issuedBooks++;
+        }
+    }
+    
+    int pendingRequests = 0;
+    for (int i = 0; i < requestCount; i++) {
+        if (requests[i].status == REQUEST_PENDING) pendingRequests++;
+    }
+    
+    int rejectedRequests = 0;
+    for (int i = 0; i < requestCount; i++) {
+        if (requests[i].status == REQUEST_REJECTED) rejectedRequests++;
+    }
+    
+    int completedRequests = 0;
+    for (int i = 0; i < requestCount; i++) {
+        if (requests[i].status == REQUEST_COMPLETED) completedRequests++;
+    }
+    
+    int activeCustomers = 0;
+    for (int i = 0; i < customerCount; i++) {
+        if (customers[i].isActive) activeCustomers++;
+    }
+    
+    int overdueBooks = 0;
+    for (int i = 0; i < issueCount; i++) {
+        if (issues[i].status == STATUS_OVERDUE) overdueBooks++;
+    }
+    
+    printf("Total Books (titles):       %d\n", totalBooks);
+    printf("Total Copies:               %d\n", totalCopies);
+    printf("Available Copies:           %d\n", availableCopies);
+    printf("Currently Issued:           %d\n", issuedBooks);
+    printf("Pending Requests:           %d\n", pendingRequests);
+    printf("Rejected Requests:          %d\n", rejectedRequests);
+    printf("Completed Requests:         %d\n", completedRequests);
+    printf("Registered Customers:       %d\n", activeCustomers);
+    printf("Overdue Books:              %d\n", overdueBooks);
+    printSeparator();
+    pauseScreen();
 }

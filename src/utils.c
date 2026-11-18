@@ -47,9 +47,9 @@ int readInt(const char *prompt, int min, int max) {
         if (prompt) printf("%s", prompt);
         
         if (fgets(input, sizeof(input), stdin) == NULL) {
-            /* EOF reached - return a default/min value to exit gracefully */
+            /* EOF reached - return special value to indicate EOF */
             printf("\n");
-            return min;
+            return INT_MIN;
         }
         
         removeNewline(input);
@@ -88,6 +88,13 @@ void readString(const char *prompt, char *buffer, int maxLen) {
             buffer[0] = '\0';
             printf("\n");
             return;
+        }
+        
+        /* Check if input was truncated (no newline found) */
+        size_t len = strlen(buffer);
+        if (len > 0 && buffer[len - 1] != '\n') {
+            /* Input was truncated, clear the rest of the line */
+            clearInputBuffer();
         }
         
         removeNewline(buffer);
@@ -366,4 +373,39 @@ void printMenu(const char *title, const char *options[], int count, int startNum
     printf("  +");
     for (int i = 0; i < width - 2; i++) printf("-");
     printf("+\n");
+}
+
+/* ============================================================
+ * Additional Date Utilities
+ * ============================================================ */
+
+/* Calculate days between two dates (positive if d1 > d2) */
+int daysBetween(struct Date d1, struct Date d2) {
+    /* Convert to days since epoch for simplicity */
+    time_t t1, t2;
+    struct tm tm1 = {0}, tm2 = {0};
+    
+    tm1.tm_year = d1.year - 1900;
+    tm1.tm_mon = d1.month - 1;
+    tm1.tm_mday = d1.day;
+    tm1.tm_hour = 12; /* Noon to avoid DST issues */
+    
+    tm2.tm_year = d2.year - 1900;
+    tm2.tm_mon = d2.month - 1;
+    tm2.tm_mday = d2.day;
+    tm2.tm_hour = 12;
+    
+    t1 = mktime(&tm1);
+    t2 = mktime(&tm2);
+    
+    if (t1 == -1 || t2 == -1) return 0;
+    
+    return (int)((t1 - t2) / 86400);
+}
+
+/* Calculate overdue days for a due date */
+int getOverdueDays(struct Date dueDate) {
+    struct Date today = getCurrentDate();
+    int days = daysBetween(today, dueDate);
+    return (days > 0) ? days : 0;
 }

@@ -21,9 +21,11 @@ void saveBooks(void) {
         return;
     }
     
-    fwrite(&bookCount, sizeof(int), 1, fp);
-    fwrite(&nextBookId, sizeof(int), 1, fp);
-    fwrite(books, sizeof(struct Book), bookCount, fp);
+    if (fwrite(&bookCount, sizeof(int), 1, fp) != 1 ||
+        fwrite(&nextBookId, sizeof(int), 1, fp) != 1 ||
+        fwrite(books, sizeof(struct Book), bookCount, fp) != (size_t)bookCount) {
+        printf("Error: Failed to write books.dat\n");
+    }
     
     fclose(fp);
 }
@@ -35,8 +37,10 @@ void saveCustomers(void) {
         return;
     }
     
-    fwrite(&customerCount, sizeof(int), 1, fp);
-    fwrite(customers, sizeof(struct Customer), customerCount, fp);
+    if (fwrite(&customerCount, sizeof(int), 1, fp) != 1 ||
+        fwrite(customers, sizeof(struct Customer), customerCount, fp) != (size_t)customerCount) {
+        printf("Error: Failed to write customers.dat\n");
+    }
     
     fclose(fp);
 }
@@ -48,9 +52,11 @@ void saveIssues(void) {
         return;
     }
     
-    fwrite(&issueCount, sizeof(int), 1, fp);
-    fwrite(&nextIssueId, sizeof(int), 1, fp);
-    fwrite(issues, sizeof(struct IssueRecord), issueCount, fp);
+    if (fwrite(&issueCount, sizeof(int), 1, fp) != 1 ||
+        fwrite(&nextIssueId, sizeof(int), 1, fp) != 1 ||
+        fwrite(issues, sizeof(struct IssueRecord), issueCount, fp) != (size_t)issueCount) {
+        printf("Error: Failed to write issues.dat\n");
+    }
     
     fclose(fp);
 }
@@ -62,9 +68,11 @@ void saveRequests(void) {
         return;
     }
     
-    fwrite(&requestCount, sizeof(int), 1, fp);
-    fwrite(&nextRequestId, sizeof(int), 1, fp);
-    fwrite(requests, sizeof(struct BookRequest), requestCount, fp);
+    if (fwrite(&requestCount, sizeof(int), 1, fp) != 1 ||
+        fwrite(&nextRequestId, sizeof(int), 1, fp) != 1 ||
+        fwrite(requests, sizeof(struct BookRequest), requestCount, fp) != (size_t)requestCount) {
+        printf("Error: Failed to write requests.dat\n");
+    }
     
     fclose(fp);
 }
@@ -76,8 +84,10 @@ void saveStaff(void) {
         return;
     }
     
-    fwrite(&staffCount, sizeof(int), 1, fp);
-    fwrite(staff, sizeof(struct Staff), staffCount, fp);
+    if (fwrite(&staffCount, sizeof(int), 1, fp) != 1 ||
+        fwrite(staff, sizeof(struct Staff), staffCount, fp) != (size_t)staffCount) {
+        printf("Error: Failed to write staff.dat\n");
+    }
     
     fclose(fp);
 }
@@ -103,9 +113,33 @@ void loadBooks(void) {
         return;
     }
     
-    fread(&bookCount, sizeof(int), 1, fp);
-    fread(&nextBookId, sizeof(int), 1, fp);
-    fread(books, sizeof(struct Book), bookCount, fp);
+    int count, nextId;
+    if (fread(&count, sizeof(int), 1, fp) != 1 ||
+        fread(&nextId, sizeof(int), 1, fp) != 1) {
+        fclose(fp);
+        bookCount = 0;
+        nextBookId = 1;
+        return;
+    }
+    
+    /* Bounds checking */
+    if (count < 0 || count > MAX_BOOKS) {
+        fclose(fp);
+        bookCount = 0;
+        nextBookId = 1;
+        printf("Warning: Invalid book count in data file, resetting.\n");
+        return;
+    }
+    
+    bookCount = count;
+    nextBookId = nextId;
+    
+    if (fread(books, sizeof(struct Book), bookCount, fp) != (size_t)bookCount) {
+        fclose(fp);
+        bookCount = 0;
+        nextBookId = 1;
+        return;
+    }
     
     fclose(fp);
 }
@@ -117,8 +151,28 @@ void loadCustomers(void) {
         return;
     }
     
-    fread(&customerCount, sizeof(int), 1, fp);
-    fread(customers, sizeof(struct Customer), customerCount, fp);
+    int count;
+    if (fread(&count, sizeof(int), 1, fp) != 1) {
+        fclose(fp);
+        customerCount = 0;
+        return;
+    }
+    
+    /* Bounds checking */
+    if (count < 0 || count > MAX_CUSTOMERS) {
+        fclose(fp);
+        customerCount = 0;
+        printf("Warning: Invalid customer count in data file, resetting.\n");
+        return;
+    }
+    
+    customerCount = count;
+    
+    if (fread(customers, sizeof(struct Customer), customerCount, fp) != (size_t)customerCount) {
+        fclose(fp);
+        customerCount = 0;
+        return;
+    }
     
     fclose(fp);
 }
@@ -131,9 +185,33 @@ void loadIssues(void) {
         return;
     }
     
-    fread(&issueCount, sizeof(int), 1, fp);
-    fread(&nextIssueId, sizeof(int), 1, fp);
-    fread(issues, sizeof(struct IssueRecord), issueCount, fp);
+    int count, nextId;
+    if (fread(&count, sizeof(int), 1, fp) != 1 ||
+        fread(&nextId, sizeof(int), 1, fp) != 1) {
+        fclose(fp);
+        issueCount = 0;
+        nextIssueId = 1;
+        return;
+    }
+    
+    /* Bounds checking */
+    if (count < 0 || count > MAX_RECORDS) {
+        fclose(fp);
+        issueCount = 0;
+        nextIssueId = 1;
+        printf("Warning: Invalid issue count in data file, resetting.\n");
+        return;
+    }
+    
+    issueCount = count;
+    nextIssueId = nextId;
+    
+    if (fread(issues, sizeof(struct IssueRecord), issueCount, fp) != (size_t)issueCount) {
+        fclose(fp);
+        issueCount = 0;
+        nextIssueId = 1;
+        return;
+    }
     
     fclose(fp);
 }
@@ -146,9 +224,33 @@ void loadRequests(void) {
         return;
     }
     
-    fread(&requestCount, sizeof(int), 1, fp);
-    fread(&nextRequestId, sizeof(int), 1, fp);
-    fread(requests, sizeof(struct BookRequest), requestCount, fp);
+    int count, nextId;
+    if (fread(&count, sizeof(int), 1, fp) != 1 ||
+        fread(&nextId, sizeof(int), 1, fp) != 1) {
+        fclose(fp);
+        requestCount = 0;
+        nextRequestId = 1;
+        return;
+    }
+    
+    /* Bounds checking */
+    if (count < 0 || count > MAX_RECORDS) {
+        fclose(fp);
+        requestCount = 0;
+        nextRequestId = 1;
+        printf("Warning: Invalid request count in data file, resetting.\n");
+        return;
+    }
+    
+    requestCount = count;
+    nextRequestId = nextId;
+    
+    if (fread(requests, sizeof(struct BookRequest), requestCount, fp) != (size_t)requestCount) {
+        fclose(fp);
+        requestCount = 0;
+        nextRequestId = 1;
+        return;
+    }
     
     fclose(fp);
 }
@@ -160,8 +262,28 @@ void loadStaff(void) {
         return;
     }
     
-    fread(&staffCount, sizeof(int), 1, fp);
-    fread(staff, sizeof(struct Staff), staffCount, fp);
+    int count;
+    if (fread(&count, sizeof(int), 1, fp) != 1) {
+        fclose(fp);
+        staffCount = 0;
+        return;
+    }
+    
+    /* Bounds checking */
+    if (count < 0 || count > MAX_STAFF) {
+        fclose(fp);
+        staffCount = 0;
+        printf("Warning: Invalid staff count in data file, resetting.\n");
+        return;
+    }
+    
+    staffCount = count;
+    
+    if (fread(staff, sizeof(struct Staff), staffCount, fp) != (size_t)staffCount) {
+        fclose(fp);
+        staffCount = 0;
+        return;
+    }
     
     fclose(fp);
 }

@@ -1,0 +1,27 @@
+# Build artifacts
+*.exe
+*.o
+*.obj
+build/
+*.out
+
+# Data files (generated at runtime)
+data/*.dat
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.txt
+seed_books.c
+seed_books.exe
+
+# Compiled executables
+ShelfSync.exe

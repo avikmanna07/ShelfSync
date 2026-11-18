@@ -68,13 +68,14 @@ void viewAllBooks(void) {
     int activeCount = 0;
     for (int i = 0; i < bookCount; i++) {
         if (books[i].isActive) {
-            printf("%-6d %-30s %-20s %-15s %3d / %3d\n",
+            printf("%-6d %-30s %-20s %-15s %3d / %3d  %s\n",
                    books[i].bookId,
                    books[i].title,
                    books[i].author,
                    books[i].category,
                    books[i].availableCopies,
-                   books[i].totalCopies);
+                   books[i].totalCopies,
+                   books[i].availableCopies > 0 ? "Available" : "Unavailable");
             activeCount++;
         }
     }
@@ -97,7 +98,7 @@ void searchBook(void) {
         return;
     }
     
-    int searchBy = readInt("Search by:\n1. Book ID\n2. Title (partial, case-insensitive)\n3. Author (partial, case-insensitive)\nChoice: ", 1, 3);
+    int searchBy = readInt("Search by:\n1. Book ID\n2. Title (partial, case-insensitive)\n3. Author (partial, case-insensitive)\n4. Category (partial, case-insensitive)\nChoice: ", 1, 4);
     
     int foundCount = 0;
     
@@ -115,13 +116,14 @@ void searchBook(void) {
         displayBookTableHeader();
         for (int i = 0; i < bookCount; i++) {
             if (books[i].isActive && strCaseStr(books[i].title, title)) {
-                printf("%-6d %-30s %-20s %-15s %3d / %3d\n",
+                printf("%-6d %-30s %-20s %-15s %3d / %3d  %s\n",
                        books[i].bookId,
                        books[i].title,
                        books[i].author,
                        books[i].category,
                        books[i].availableCopies,
-                       books[i].totalCopies);
+                       books[i].totalCopies,
+                       books[i].availableCopies > 0 ? "Available" : "Unavailable");
                 foundCount++;
             }
         }
@@ -133,13 +135,33 @@ void searchBook(void) {
         displayBookTableHeader();
         for (int i = 0; i < bookCount; i++) {
             if (books[i].isActive && strCaseStr(books[i].author, author)) {
-                printf("%-6d %-30s %-20s %-15s %3d / %3d\n",
+                printf("%-6d %-30s %-20s %-15s %3d / %3d  %s\n",
                        books[i].bookId,
                        books[i].title,
                        books[i].author,
                        books[i].category,
                        books[i].availableCopies,
-                       books[i].totalCopies);
+                       books[i].totalCopies,
+                       books[i].availableCopies > 0 ? "Available" : "Unavailable");
+                foundCount++;
+            }
+        }
+        printSeparator();
+    } else if (searchBy == 4) {
+        char category[MAX_STR];
+        readString("Enter Category (partial): ", category, MAX_STR);
+        
+        displayBookTableHeader();
+        for (int i = 0; i < bookCount; i++) {
+            if (books[i].isActive && strCaseStr(books[i].category, category)) {
+                printf("%-6d %-30s %-20s %-15s %3d / %3d  %s\n",
+                       books[i].bookId,
+                       books[i].title,
+                       books[i].author,
+                       books[i].category,
+                       books[i].availableCopies,
+                       books[i].totalCopies,
+                       books[i].availableCopies > 0 ? "Available" : "Unavailable");
                 foundCount++;
             }
         }
@@ -201,13 +223,23 @@ void updateBook(void) {
     removeNewline(input);
     if (!isEmptyString(input)) strcpy(book->category, input);
     
-    int newTotal = readInt("Total Copies [current: ", book->totalCopies, 1000);
-    printf("]: ");
-    if (newTotal != book->totalCopies) {
-        int diff = newTotal - book->totalCopies;
-        book->totalCopies = newTotal;
-        book->availableCopies += diff;
-        if (book->availableCopies < 0) book->availableCopies = 0;
+    printf("Total Copies [%d]: ", book->totalCopies);
+    fgets(input, MAX_STR, stdin);
+    removeNewline(input);
+    if (!isEmptyString(input)) {
+        char *endptr;
+        long val = strtol(input, &endptr, 10);
+        if (endptr != input && *endptr == '\0' && val >= 1 && val <= 1000) {
+            int newTotal = (int)val;
+            if (newTotal != book->totalCopies) {
+                int diff = newTotal - book->totalCopies;
+                book->totalCopies = newTotal;
+                book->availableCopies += diff;
+                if (book->availableCopies < 0) book->availableCopies = 0;
+            }
+        } else {
+            printf("  Invalid input, keeping current value.\n");
+        }
     }
     
     saveBooks();
@@ -242,10 +274,10 @@ void deleteBook(void) {
     printf("\nBook to delete:\n");
     displayBook(book);
     
-    /* Check if book has active issues */
+    /* Check if book has active issues (issued or overdue) */
     int hasActiveIssues = 0;
     for (int i = 0; i < issueCount; i++) {
-        if (issues[i].bookId == bookId && issues[i].status == STATUS_ISSUED) {
+        if (issues[i].bookId == bookId && IS_ISSUED(issues[i].status)) {
             hasActiveIssues = 1;
             break;
         }
@@ -306,7 +338,7 @@ void displayBook(const struct Book *book) {
 }
 
 void displayBookTableHeader(void) {
-    printf("%-6s %-30s %-20s %-15s %s\n", "ID", "Title", "Author", "Category", "Avail/Total");
+    printf("%-6s %-30s %-20s %-15s %3s / %3s  %s\n", "ID", "Title", "Author", "Category", "Avl", "Tot", "Status");
     printSeparator();
 }
 
